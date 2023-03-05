@@ -15,24 +15,21 @@ struct ReaderConfig {
 
 enum WordConcentration {
     SmallWord,
-    LessThanFine,
     Fine,
-    GreaterThanFine,
+    High,
     VeryHigh,
 }
 
 fn estimate_word_length(word: &str) -> WordConcentration {
-    if word
-        .chars()
-        .any(|s| s == '.' || s == ',' || s == '-' || s == '!' || s == ':' || s.is_uppercase())
-    {
-        return WordConcentration::VeryHigh;
+    if word.chars().any(|s| {
+        s == '.' || s == ',' || s == '-' || s == '!' || s == ':' || s == '?' || s.is_uppercase()
+    }) {
+        return WordConcentration::High;
     }
-    match word.len() {
+    match word.chars().collect::<Vec<char>>().len() {
         1..=2 => WordConcentration::SmallWord,
-        3..=4 => WordConcentration::LessThanFine,
-        5..=12 => WordConcentration::Fine,
-        13..=14 => WordConcentration::GreaterThanFine,
+        3..=14 => WordConcentration::Fine,
+        15..=22 => WordConcentration::High,
         _ => WordConcentration::VeryHigh,
     }
 }
@@ -40,10 +37,9 @@ fn estimate_word_length(word: &str) -> WordConcentration {
 fn sleep_time(words_per_minute: u64, word_estimation: WordConcentration) {
     let time_multiplier = match word_estimation {
         WordConcentration::SmallWord => 0.9,
-        WordConcentration::LessThanFine => 0.7,
-        WordConcentration::Fine => 0.7,
-        WordConcentration::GreaterThanFine => 0.7,
-        WordConcentration::VeryHigh => 2.4,
+        WordConcentration::Fine => 0.8,
+        WordConcentration::High => 2.4,
+        WordConcentration::VeryHigh => 3.4,
     };
     thread::sleep(Duration::from_millis(
         (((1000 * 60 / words_per_minute) as f32) * time_multiplier) as u64,
@@ -106,7 +102,6 @@ fn main() {
                 continue;
             }
             println!("{}", word);
-
             sleep_time(reader_config.words_per_minute, estimate_word_length(word));
         }
     }
